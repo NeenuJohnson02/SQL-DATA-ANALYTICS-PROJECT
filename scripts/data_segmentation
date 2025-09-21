@@ -1,0 +1,70 @@
+/*
+===============================================================================
+Data Segmentation Analysis
+===============================================================================
+Purpose:
+    - To group data into meaningful categories for targeted insights.
+    - For customer segmentation, product categorization, or regional analysis.
+
+SQL Functions Used:
+    - CASE: Defines custom segmentation logic.
+    - GROUP BY: Groups data into segments.
+===============================================================================
+*/
+
+/*Segment products into cost ranges and 
+count how many products fall into each segment*/
+
+
+-----which categories contribute the most to overall sales?
+WITH Category_sales AS(
+SELECT
+category,
+SUM(sales_amount) AS Total_sales
+FROM gold.fact_sales as s 
+LEFT JOIN gold.dim_products as p
+ON s.product_key=p.product_key
+GROUP BY category)
+
+SELECT
+category,
+Total_sales,
+SUM(Total_sales) OVER() AS Overall_sales,
+CONCAT(ROUND((CAST(Total_sales AS FLOAT)/SUM(Total_sales) OVER())*100,2),'%')
+FROM Category_sales
+ORDER BY CONCAT(ROUND((CAST(Total_sales AS FLOAT)/SUM(Total_sales) OVER())*100,2),'%') DESC;
+
+/*Group customers into three segments based on their spending behavior:
+	- VIP: Customers with at least 12 months of history and spending more than €5,000.
+	- Regular: Customers with at least 12 months of history but spending €5,000 or less.
+	- New: Customers with a lifespan less than 12 months.
+And find the total number of customers by each group
+*/
+WITH Customer_spending AS(
+SELECT
+c.customer_key,
+SUM(sales_amount) AS Total_spending,
+MIN(order_date) AS First_order,
+MAX(order_date) AS Last_order,
+DATEDIFF(month,MIN(order_date),MAX(order_date)) AS Life_span
+FROM gold.fact_sales as f
+LEFT JOIN gold.dim_customers as c
+ON C.customer_key=F.customer_key
+GROUP BY c.customer_key)
+
+SELECT
+COUNT(customer_key) ,
+Customer_segment
+FROM(
+
+SELECT
+customer_key,
+total_spending,
+life_span ,
+CASE WHEN life_span>= 12 AND total_spending>5000  THEN 'VIP'
+     WHEN Life_span>=12 AND total_spending<= 5000 THEN 'Regular'
+     ELSE 'New'
+    END AS Customer_segment
+FROM Customer_spending)t
+GROUP BY Customer_segment
+ORDER BY COUNT(customer_key) DESC;
