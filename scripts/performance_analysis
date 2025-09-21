@@ -1,0 +1,54 @@
+/*
+===============================================================================
+Performance Analysis (Year-over-Year, Month-over-Month)
+===============================================================================
+Purpose:
+    - To measure the performance of products, customers, or regions over time.
+    - For benchmarking and identifying high-performing entities.
+    - To track yearly trends and growth.
+
+SQL Functions Used:
+    - LAG(): Accesses data from previous rows.
+    - AVG() OVER(): Computes average values within partitions.
+    - CASE: Defines conditional logic for trend analysis.
+===============================================================================
+*/
+
+/* Analyze the yearly performance of products by comparing their sales 
+to both the average sales performance of the product and the previous year's sales */
+
+-----Analyse the yearly performance of products by comparing their sales to both average sale performance of the product and the previous year's sale
+
+WITH Yearly_product_sales AS(
+SELECT
+YEAR(s.order_date) AS Order_year,
+p.product_name,
+SUM(s.sales_amount) AS Current_sales
+FROM gold.fact_sales AS s
+LEFT JOIN gold.dim_products AS p
+ON s.product_key=p.product_key
+WHERE order_date IS NOT NULL
+GROUP BY
+YEAR(s.order_date),
+p.product_name
+)
+SELECT
+Order_year,
+Current_sales,
+product_name,
+AVG(Current_sales) OVER(PARTITION BY product_name) AS Avg_sales,
+Current_sales-AVG(Current_sales) OVER(PARTITION BY product_name) AS Diff_avg,
+CASE WHEN Current_sales-AVG(Current_sales) OVER(PARTITION BY product_name) <0 THEN 'Below Average'
+	WHEN Current_sales-AVG(Current_sales) OVER(PARTITION BY product_name)>0 THEN 'Above Average'
+	ELSE 'Average'
+END AS 'AVG',
+-----Year over year analysis
+LAG(current_sales) OVER(PARTITION BY product_name ORDER BY Order_year) AS Py_sales,
+Current_sales-LAG(current_sales) OVER(PARTITION BY product_name ORDER BY Order_year) AS diff_py,
+CASE WHEN Current_sales-LAG(current_sales) OVER(PARTITION BY product_name ORDER BY Order_year)<0 THEN 'Decrease'
+     WHEN Current_sales-LAG(current_sales) OVER(PARTITION BY product_name ORDER BY Order_year)>0 THEN 'Increase'
+	 ELSE'No change'
+END AS Py_change
+
+FROM Yearly_product_sales
+ORDER BY product_name,Order_year;
