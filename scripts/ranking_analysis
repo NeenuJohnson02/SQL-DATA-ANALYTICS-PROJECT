@@ -1,0 +1,89 @@
+/*
+===============================================================================
+Ranking Analysis
+===============================================================================
+Purpose:
+    - To rank items (e.g., products, customers) based on performance or other metrics.
+    - To identify top performers or laggards.
+
+SQL Functions Used:
+    - Window Ranking Functions: RANK(), DENSE_RANK(), ROW_NUMBER(), TOP
+    - Clauses: GROUP BY, ORDER BY
+===============================================================================
+*/
+
+
+-----Which 5 products generate highest revenue?
+SELECT TOP 5
+p.product_name,
+SUM(f.sales_amount) AS Total_revenue
+FROM gold.fact_sales as f
+left join gold.dim_products as p
+ON f.product_key=p.product_key
+GROUP BY P.product_name
+ORDER BY SUM(f.sales_amount) DESC;
+
+
+----Which are the 5 worst-performing products in terms of sales?
+SELECT TOP 5
+p.product_name,
+SUM(f.sales_amount) AS Total_revenue
+FROM gold.fact_sales as f
+left join gold.dim_products as p
+ON f.product_key=p.product_key
+GROUP BY P.product_name
+ORDER BY SUM(f.sales_amount) ASC;
+
+-----Which 5 subcatgory products generate highest revenue?
+SELECT TOP 5
+p.subcategory,
+SUM(f.sales_amount) AS Total_revenue
+FROM gold.fact_sales as f
+left join gold.dim_products as p
+ON f.product_key=p.product_key
+GROUP BY P.subcategory
+ORDER BY SUM(f.sales_amount) DESC;
+
+----Which are the 5 worst-performing products in terms of sales?
+SELECT TOP 5
+p.subcategory,
+SUM(f.sales_amount) AS Total_revenue
+FROM gold.fact_sales as f
+left join gold.dim_products as p
+ON f.product_key=p.product_key
+GROUP BY P.subcategory
+ORDER BY SUM(f.sales_amount) ASC;
+
+-----Find the top 10 customerswho have generated the highest revenue
+SELECT TOP 10
+c.customer_key,
+c.first_name,
+c.last_name,
+SUM(f.sales_amount) AS Total_revenue
+FROM gold.fact_sales as f
+left join gold.dim_customers as c
+ON f.product_key=c.customer_key
+GROUP BY 
+c.customer_key,
+c.first_name,
+c.last_name
+ORDER BY SUM(f.sales_amount)DESC;
+
+
+------The 3 customers with the fewest orders placed
+SELECT TOP 3
+c.customer_key,
+c.first_name,
+c.last_name,
+count(distinct order_number) as Total_orders
+from gold.dim_customers as c
+LEFT JOIN gold.fact_sales as s
+ON c.customer_key=s.customer_key
+GROUP BY 
+c.customer_key,
+c.first_name,
+c.last_name
+ORDER BY count(distinct order_number) ASC;
+
+
+
